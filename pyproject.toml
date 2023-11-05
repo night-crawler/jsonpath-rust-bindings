@@ -9,8 +9,19 @@ classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 dynamic = ["version"]
+maintainer = "Igor Kalishevsky"
+maintainer-email = "lilo.panic@@gmail.com"
+project-url = { homepage = "https://github.com/night-crawler/jsonpath-rust-bindings" }
 
 [tool.maturin]
 features = ["pyo3/extension-module"]

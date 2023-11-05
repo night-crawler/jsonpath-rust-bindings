@@ -96,3 +96,4 @@ fn jsonpath_rust_bindings(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Finder>()?;
     Ok(())
 }
+
