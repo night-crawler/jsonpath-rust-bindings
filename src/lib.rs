@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use jsonpath_rust::{JsonPathFinder, JsonPathInst, JsonPathValue};
+use jsonpath_rust::{JsonPathFinder, JsonPathInst, JsonPathValue, JsonPtr};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pythonize::{depythonize, pythonize};
@@ -28,50 +28,71 @@ struct Finder {
 impl Finder {
     #[new]
     fn py_new(obj: PyObject) -> PyResult<Self> {
-        let value: PyResult<Value> = Python::with_gil(|py| {
-            let obj: &PyAny = obj.downcast(py)?;
-            Ok(depythonize(obj)?)
-        });
+        Ok(Self { value: parse_py_object(obj)? })
+    }
 
-        Ok(Self { value: value? })
+    fn find_with_paths(self_: PyRef<'_, Self>, query: String) -> PyResult<Vec<JsonPathResult>> {
+        let value = &self_.value;
+        let query = parse_query(&query)?;
+
+        let finder = JsonPathFinder::new(value.clone().into(), query.into());
+        let slice = finder.find_slice();
+        Python::with_gil(|py| {
+            map_json_path_values(py, slice)
+        })
     }
 
     fn find(self_: PyRef<'_, Self>, query: String) -> PyResult<Vec<JsonPathResult>> {
         let value = &self_.value;
-        let query = match JsonPathInst::from_str(&query) {
-            Ok(inst) => inst,
-            Err(err) => {
-                return Err(PyValueError::new_err(err));
-            }
-        };
+        let query = parse_query(&query)?;
+        let slice = query.find_slice(value);
 
-        // TODO: how to get rid of cloning?
-        //  Also, how can we return python references back to python?
-        let finder = JsonPathFinder::new(value.clone().into(), query.into());
         Python::with_gil(|py| {
-            map_result(py, finder.find_slice())
+            map_json_ptrs(py, slice)
         })
     }
 }
 
 
 #[pyfunction]
-fn jsonpath(path: String, obj: PyObject) -> PyResult<Vec<JsonPathResult>> {
-    let query = match JsonPathInst::from_str(&path) {
-        Ok(inst) => inst,
-        Err(err) => {
-            return Err(PyValueError::new_err(err));
-        }
-    };
+fn jsonpath(query: String, obj: PyObject) -> PyResult<Vec<JsonPathResult>> {
+    let query = parse_query(&query)?;
+    let value = parse_py_object(obj)?;
+    let finder = JsonPathFinder::new(value.into(), query.into());
+    let slice = finder.find_slice();
     Python::with_gil(|py| {
-        let obj: &PyAny = obj.downcast(py)?;
-        let value: Value = depythonize(obj)?;
-        let finder = JsonPathFinder::new(value.into(), query.into());
-        map_result(py, finder.find_slice())
+        map_json_path_values(py, slice)
     })
 }
 
-fn map_result(py: Python, slice: Vec<JsonPathValue<Value>>) -> PyResult<Vec<JsonPathResult>> {
+
+fn map_json_ptrs(py: Python, slice: Vec<JsonPtr<Value>>) -> PyResult<Vec<JsonPathResult>> {
+    let mut result = vec![];
+
+    for node in slice {
+        match node {
+            JsonPtr::Slice(data) => {
+                result.push(JsonPathResult {
+                    data: Some(pythonize(py, data)?),
+                    path: None,
+                    is_new_value: false,
+                });
+            }
+            JsonPtr::NewValue(data) => {
+                result.push(JsonPathResult {
+                    data: Some(pythonize(py, &data)?),
+                    path: None,
+                    is_new_value: true,
+                });
+            }
+        }
+    }
+
+    Ok(result)
+}
+
+
+fn map_json_path_values(py: Python, slice: Vec<JsonPathValue<Value>>) -> PyResult<Vec<JsonPathResult>> {
     let mut result = vec![];
 
     for node in slice {
@@ -103,6 +124,22 @@ fn map_result(py: Python, slice: Vec<JsonPathValue<Value>>) -> PyResult<Vec<Json
     Ok(result)
 }
 
+
+fn parse_query(query: &str) -> PyResult<JsonPathInst> {
+    match JsonPathInst::from_str(query) {
+        Ok(inst) => Ok(inst),
+        Err(err) => {
+            Err(PyValueError::new_err(err))
+        }
+    }
+}
+
+fn parse_py_object(obj: PyObject) -> PyResult<Value> {
+    Python::with_gil(|py| {
+        let obj: &PyAny = obj.downcast(py)?;
+        Ok(depythonize(obj)?)
+    })
+}
 
 #[pymodule]
 fn jsonpath_rust_bindings(_py: Python, m: &PyModule) -> PyResult<()> {
