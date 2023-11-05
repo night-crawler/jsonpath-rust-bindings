@@ -18,6 +18,23 @@ struct JsonPathResult {
     is_new_value: bool,
 }
 
+#[pymethods]
+impl JsonPathResult {
+    fn __repr__(slf: PyRef<'_, Self>) -> PyResult<String> {
+        let data_repr = Python::with_gil(|py| {
+            match &slf.data {
+                Some(data) => format!("{:?}", data.as_ref(py)),
+                None => "None".to_string(),
+            }
+        });
+        Ok(format!(
+            "JsonPathResult(data={}, path={:?}, is_new_value={})",
+            data_repr,
+            slf.path,
+            slf.is_new_value
+        ))
+    }
+}
 
 #[pyclass(frozen)]
 struct Finder {
