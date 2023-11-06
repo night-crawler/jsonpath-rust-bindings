@@ -31,7 +31,7 @@ impl JsonPathResult {
             "JsonPathResult(data={}, path={:?}, is_new_value={})",
             data_repr,
             slf.path,
-            slf.is_new_value
+            if slf.is_new_value { "True" } else { "False"}
         ))
     }
 }

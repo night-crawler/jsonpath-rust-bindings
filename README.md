@@ -1,5 +1,9 @@
 # jsonpath-rust-bindings
 
+![PyPI - Downloads](https://img.shields.io/pypi/dm/jsonpath-rust-bindings)
+![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/night-crawler/jsonpath-rust-bindings/CI.yml)
+![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/night-crawler/jsonpath-rust-bindings/test.yml?label=tests)
+
 Python bindings for [jsonpath-rust](https://github.com/besok/jsonpath-rust).
 
 ## Installation
@@ -72,16 +76,25 @@ f = Finder(sample)
 for query in queries:
     print(query, f.find(query), '\n')
 
+# You will see a bunch of found items like
+# $..book[?(@.author ~= '.*Rees')].price [JsonPathResult(data=8.95, path=Some("$.['store'].['book'][0].['price']"), is_new_value=False)]
+
 ```
+
+`JsonPathResult` has the following attributes:
+
+- data: the found value
+- path: the path to the found value
+- is_new_value: whether the value is a new value or a copy of the original value
+
+`JsonPathResult` can't be constructed from Python; it is only returned by `Finder.find()`.
 
 ## Caveats
 
-THe current implementation cloning the original PyObject when initializing the `Finder` instance. 
+THe current implementation cloning the original PyObject when initializing the `Finder` instance.
 It has yet another consequence demonstrated in the following example:
 
-```python
-Python 3.11.5 (main, Aug 30 2023, 19:09:52) [GCC 13.2.1 20230730] on linux
-Type "help", "copyright", "credits" or "license" for more information.
+```python-repl
 >>> original_object_i_want_to_mutate = {'a': {'b': 'sample b'}}
 >>> from jsonpath_rust_bindings import Finder
 >>> f = Finder(original_object_i_want_to_mutate)
