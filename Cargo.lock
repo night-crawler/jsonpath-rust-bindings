@@ -109,7 +109,7 @@ dependencies = [
 
 [[package]]
 name = "jsonpath_rust_bindings"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "jsonpath-rust",
  "pyo3",

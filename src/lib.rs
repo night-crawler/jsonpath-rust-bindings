@@ -21,18 +21,7 @@ struct JsonPathResult {
 #[pymethods]
 impl JsonPathResult {
     fn __repr__(slf: PyRef<'_, Self>) -> PyResult<String> {
-        let data_repr = Python::with_gil(|py| {
-            match &slf.data {
-                Some(data) => format!("{:?}", data.as_ref(py)),
-                None => "None".to_string(),
-            }
-        });
-        Ok(format!(
-            "JsonPathResult(data={}, path={:?}, is_new_value={})",
-            data_repr,
-            slf.path,
-            if slf.is_new_value { "True" } else { "False"}
-        ))
+        repr_json_path_result(slf)
     }
 }
 
@@ -108,9 +97,25 @@ fn parse_py_object(obj: PyObject) -> PyResult<Value> {
     })
 }
 
+fn repr_json_path_result(slf: PyRef<'_, JsonPathResult>) -> PyResult<String> {
+    let data_repr = slf.data.as_ref().map(|data| {
+        Python::with_gil(|py| format!("{:?}", data.as_ref(py)))
+    }).unwrap_or_default();
+
+    let path_repr = match &slf.path {
+        Some(path) => path,
+        None => "None",
+    };
+    Ok(format!(
+        "JsonPathResult(data={data_repr}, path={path_repr:?}, is_new_value={})",
+        if slf.is_new_value { "True" } else { "False" }
+    ))
+}
+
+
 #[pymodule]
 fn jsonpath_rust_bindings(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Finder>()?;
+    m.add_class::<JsonPathResult>()?;
     Ok(())
 }
-
