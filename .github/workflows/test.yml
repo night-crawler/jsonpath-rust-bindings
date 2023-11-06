@@ -26,4 +26,5 @@ jobs:
           maturin develop --release
       - name: Test
         run: |
+          source env/bin/activate
           python -m pytest
