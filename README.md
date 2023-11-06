@@ -3,6 +3,7 @@
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/jsonpath-rust-bindings)
 ![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/night-crawler/jsonpath-rust-bindings/CI.yml)
 ![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/night-crawler/jsonpath-rust-bindings/test.yml?label=tests)
+![piwheels (including prereleases)](https://img.shields.io/piwheels/v/jsonpath-rust-bindings)
 
 Python bindings for [jsonpath-rust](https://github.com/besok/jsonpath-rust).
 

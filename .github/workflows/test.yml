@@ -1,4 +1,4 @@
-name: Python package
+name: Cross-platform sanity check
 
 on: [push]
 
@@ -20,8 +20,7 @@ jobs:
       - name: Install dependencies
         run: python -m pip install --upgrade pip setuptools wheel maturin pytest
       - name: Build wheels
-        run: python -m maturin build --release --out dist --find-interpreter
+        run: python -m maturin develop --release
       - name: Test
         run: |
-          python -m pip install dist/*.whl
           python -m pytest
