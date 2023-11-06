@@ -5,7 +5,9 @@
 ![GitHub Workflow Status (with event)](https://img.shields.io/github/actions/workflow/status/night-crawler/jsonpath-rust-bindings/test.yml?label=tests)
 ![piwheels (including prereleases)](https://img.shields.io/piwheels/v/jsonpath-rust-bindings)
 
-Python bindings for [jsonpath-rust](https://github.com/besok/jsonpath-rust).
+This package contains Python bindings for [jsonpath-rust](https://github.com/besok/jsonpath-rust) library by [besok](https://github.com/besok).
+
+The details regarding the JsonPath itself can be found [here](https://goessner.net/articles/JsonPath/).
 
 ## Installation
 
@@ -92,10 +94,12 @@ for query in queries:
 
 ## Caveats
 
-THe current implementation cloning the original PyObject when initializing the `Finder` instance.
-It has yet another consequence demonstrated in the following example:
+The current implementation is cloning the original `PyObject` data when converting it to the serde `Value`.
+It happens each time you're creating a new `Finder` instance. Try to reuse the same `Finder` instance for querying if it's possible.
 
-```python-repl
+Also, It has yet another consequence demonstrated in the following example:
+
+```python
 >>> original_object_i_want_to_mutate = {'a': {'b': 'sample b'}}
 >>> from jsonpath_rust_bindings import Finder
 >>> f = Finder(original_object_i_want_to_mutate)
