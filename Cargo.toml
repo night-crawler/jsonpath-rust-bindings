@@ -3,13 +3,12 @@ name = "jsonpath_rust_bindings"
 version = "0.1.1"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 name = "jsonpath_rust_bindings"
 crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = "0.20"
-jsonpath-rust = "0.3"
+jsonpath-rust = "0.3.5"
 serde_json = "1.0"
 pythonize = "0.20"
