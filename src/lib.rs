@@ -1,9 +1,7 @@
-use jsonpath_rust::JsonPathValue;
-use jsonpath_rust::parser::model::JsonPath;
-use jsonpath_rust::path::json_path_instance;
+use jsonpath_rust::{JsonPath, JsonPathValue};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pythonize::{depythonize, pythonize};
+use pythonize::{depythonize_bound, pythonize};
 use serde_json::Value;
 
 #[pyclass(frozen)]
@@ -39,18 +37,24 @@ impl Finder {
 
 
     fn find(self_: PyRef<'_, Self>, query: String) -> PyResult<Vec<JsonPathResult>> {
-        let value = &self_.value;
-        let query = parse_query(&query)?;
+        find_internal(&self_.value, &query, |_| true)
+    }
 
-        let slice = json_path_instance(&query, value)
-            .find(JsonPathValue::from_root(value))
-            .into_iter()
-            .collect::<Vec<_>>();
-
-        Python::with_gil(|py| {
-            slice.into_iter().map(|v| map_json_path_value(py, v)).collect()
+    fn find_non_empty(self_: PyRef<'_, Self>, query: String) -> PyResult<Vec<JsonPathResult>> {
+        find_internal(&self_.value, &query, |v| match v {
+            JsonPathValue::Slice(_, _) => true,
+            JsonPathValue::NewValue(_) => true,
+            JsonPathValue::NoValue => false
         })
     }
+}
+
+fn find_internal(value: &Value, query: &str, predicate: impl Fn(&JsonPathValue<Value>) -> bool) -> PyResult<Vec<JsonPathResult>> {
+    let query = parse_query(query)?;
+    let slice = query.find_slice(value).into_iter().filter(predicate);
+    Python::with_gil(|py| {
+        slice.into_iter().map(|v| map_json_path_value(py, v)).collect()
+    })
 }
 
 
@@ -85,21 +89,22 @@ fn parse_query(query: &str) -> PyResult<JsonPath> {
     match JsonPath::try_from(query) {
         Ok(inst) => Ok(inst),
         Err(err) => {
-            Err(PyValueError::new_err(err))
+            Err(PyValueError::new_err(format!("{err:?}")))
         }
     }
 }
 
 fn parse_py_object(obj: PyObject) -> PyResult<Value> {
     Python::with_gil(|py| {
-        let obj: &PyAny = obj.downcast(py)?;
-        Ok(depythonize(obj)?)
+        let any = obj.downcast_bound::<PyAny>(py)?.clone().into_any();
+        let value = depythonize_bound(any)?;
+        Ok(value)
     })
 }
 
 fn repr_json_path_result(slf: PyRef<'_, JsonPathResult>) -> PyResult<String> {
     let data_repr = slf.data.as_ref().map(|data| {
-        Python::with_gil(|py| format!("{:?}", data.as_ref(py)))
+        Python::with_gil(|py| format!("{:?}", data.bind(py)))
     }).unwrap_or_default();
 
     let path_repr = match &slf.path {

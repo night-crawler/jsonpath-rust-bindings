@@ -59,3 +59,17 @@ def test_repr(sample_data):
     finder = Finder(sample_data)
     result = str(finder.find('$.store.bicycle.color')[0])
     assert result == """JsonPathResult(data='red', path="$.['store'].['bicycle'].['color']", is_new_value=False)"""
+
+
+def test_non_empty(sample_data):
+    finder = Finder(sample_data)
+
+    result = finder.find("..*[?(@.category=='fiction')]")
+    for entry in result:
+        assert entry.path is not None and entry.data is not None
+
+    # after jsonpath-rust version bump this method does not seem to be needed,
+    # though let it be for some time just in case
+    result = finder.find_non_empty("..*[?(@.category=='fiction')]")
+    for entry in result:
+        assert entry.path is not None and entry.data is not None
