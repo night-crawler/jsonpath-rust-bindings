@@ -1,4 +1,6 @@
-use jsonpath_rust::{JsonPath, JsonPathValue};
+use jsonpath_rust::parser::model::JpQuery;
+use jsonpath_rust::parser::parse_json_path;
+use jsonpath_rust::query::{js_path_process, QueryRef};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pythonize::{depythonize, pythonize};
@@ -11,9 +13,6 @@ struct JsonPathResult {
 
     #[pyo3(get)]
     path: Option<String>,
-
-    #[pyo3(get)]
-    is_new_value: bool,
 }
 
 #[pymethods]
@@ -40,53 +39,44 @@ impl Finder {
     fn find(self_: PyRef<'_, Self>, query: String) -> PyResult<Vec<JsonPathResult>> {
         find_internal(&self_.value, &query, |_| true)
     }
-
-    fn find_non_empty(self_: PyRef<'_, Self>, query: String) -> PyResult<Vec<JsonPathResult>> {
-        find_internal(&self_.value, &query, |v| match v {
-            JsonPathValue::Slice(_, _) => true,
-            JsonPathValue::NewValue(_) => true,
-            JsonPathValue::NoValue => false,
-        })
-    }
 }
 
 fn find_internal(
     value: &Value,
     query: &str,
-    predicate: impl Fn(&JsonPathValue<Value>) -> bool,
+    predicate: impl Fn(&QueryRef<Value>) -> bool,
 ) -> PyResult<Vec<JsonPathResult>> {
     let query = parse_query(query)?;
-    let slice = query.find_slice(value).into_iter().filter(predicate);
+    let processed = match js_path_process(&query, value) {
+        Ok(p) => p,
+        Err(err) => {
+            return Err(PyValueError::new_err(err.to_string()));
+        }
+    };
+    let filtered = processed.into_iter().filter(predicate);
+
     Python::with_gil(|py| {
-        slice
+        filtered
             .into_iter()
             .map(|v| map_json_path_value(py, v))
             .collect()
     })
 }
 
-fn map_json_path_value(py: Python, jpv: JsonPathValue<Value>) -> PyResult<JsonPathResult> {
-    Ok(match jpv {
-        JsonPathValue::Slice(data, path) => JsonPathResult {
-            data: Some(pythonize(py, data)?.into_pyobject(py)?.unbind()),
-            path: Some(path.to_string()),
-            is_new_value: false,
-        },
-        JsonPathValue::NewValue(data) => JsonPathResult {
-            data: Some(pythonize(py, &data)?.into_pyobject(py)?.unbind()),
-            path: None,
-            is_new_value: true,
-        },
-        JsonPathValue::NoValue => JsonPathResult {
-            data: None,
-            path: None,
-            is_new_value: false,
-        },
-    })
+fn map_json_path_value(py: Python, jpv: QueryRef<Value>) -> PyResult<JsonPathResult> {
+    let path = jpv.clone().path();
+    let val = jpv.val();
+
+    let res = JsonPathResult {
+        data: Some(pythonize(py, val)?.into_pyobject(py)?.unbind()),
+        path: Some(path),
+    };
+
+    Ok(res)
 }
 
-fn parse_query(query: &str) -> PyResult<JsonPath> {
-    match JsonPath::try_from(query) {
+fn parse_query(query: &str) -> PyResult<JpQuery> {
+    match parse_json_path(query) {
         Ok(inst) => Ok(inst),
         Err(err) => Err(PyValueError::new_err(format!("{err:?}"))),
     }
@@ -112,8 +102,7 @@ fn repr_json_path_result(slf: PyRef<'_, JsonPathResult>) -> PyResult<String> {
         None => "None",
     };
     Ok(format!(
-        "JsonPathResult(data={data_repr}, path={path_repr:?}, is_new_value={})",
-        if slf.is_new_value { "True" } else { "False" }
+        "JsonPathResult(data={data_repr}, path={path_repr:?})",
     ))
 }
 

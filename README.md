@@ -88,7 +88,6 @@ for query in queries:
 
 - data: the found value
 - path: the path to the found value
-- is_new_value: whether the value is a new value or a copy of the original value
 
 `JsonPathResult` can't be constructed from Python; it is only returned by `Finder.find()`.
 
@@ -109,4 +108,27 @@ Also, It has yet another consequence demonstrated in the following example:
 >>> b_dict['new'] = 42
 >>> original_object_i_want_to_mutate
 {'a': {'b': 'sample b'}}
+```
+
+## Development
+
+Clone the repository.
+
+Update maturin if needed:
+
+```bash
+pip install maturin -U 
+```
+
+Add your changes, then run:
+
+```bash
+maturin develop
+```
+
+
+Update CI:
+
+```bash
+maturin generate-ci github > ./.github/workflows/CI.yml
 ```
