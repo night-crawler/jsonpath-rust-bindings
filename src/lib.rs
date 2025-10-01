@@ -1,15 +1,19 @@
 use jsonpath_rust::parser::model::JpQuery;
 use jsonpath_rust::parser::parse_json_path;
 use jsonpath_rust::query::{js_path_process, QueryRef};
+use mimalloc::MiMalloc;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pythonize::{depythonize, pythonize};
 use serde_json::Value;
 
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 #[pyclass(frozen)]
 struct JsonPathResult {
     #[pyo3(get)]
-    data: Option<PyObject>,
+    data: Option<Py<PyAny>>,
 
     #[pyo3(get)]
     path: Option<String>,
@@ -30,7 +34,7 @@ struct Finder {
 #[pymethods]
 impl Finder {
     #[new]
-    fn py_new(obj: PyObject) -> PyResult<Self> {
+    fn py_new(obj: Py<PyAny>) -> PyResult<Self> {
         Ok(Self {
             value: parse_py_object(obj)?,
         })
@@ -55,7 +59,7 @@ fn find_internal(
     };
     let filtered = processed.into_iter().filter(predicate);
 
-    Python::with_gil(|py| {
+    Python::attach(|py| {
         filtered
             .into_iter()
             .map(|v| map_json_path_value(py, v))
@@ -82,10 +86,10 @@ fn parse_query(query: &str) -> PyResult<JpQuery> {
     }
 }
 
-fn parse_py_object(obj: PyObject) -> PyResult<Value> {
-    Python::with_gil(|py| {
-        let any = obj.downcast_bound::<PyAny>(py)?.clone().into_any();
-        let value = depythonize(&any)?;
+fn parse_py_object(obj: Py<PyAny>) -> PyResult<Value> {
+    Python::attach(|py| {
+        let any = obj.bind(py);
+        let value = depythonize(any)?;
         Ok(value)
     })
 }
@@ -94,7 +98,7 @@ fn repr_json_path_result(slf: PyRef<'_, JsonPathResult>) -> PyResult<String> {
     let data_repr = slf
         .data
         .as_ref()
-        .map(|data| Python::with_gil(|py| format!("{:?}", data.bind(py))))
+        .map(|data| Python::attach(|py| format!("{:?}", data.bind(py))))
         .unwrap_or_default();
 
     let path_repr = match &slf.path {
