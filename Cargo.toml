@@ -27,6 +27,3 @@ pythonize = "0.26.0"
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 mimalloc = "0.1.48"
-
-[target.'cfg(target_os = "linux")'.dependencies]
-jemallocator = "0.5.4"

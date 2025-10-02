@@ -5,7 +5,6 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pythonize::{depythonize, pythonize};
 use serde_json::Value;
- 
 
 #[cfg(not(target_os = "linux"))]
 use mimalloc::MiMalloc;
@@ -15,12 +14,11 @@ use mimalloc::MiMalloc;
 static GLOBAL: MiMalloc = MiMalloc;
 
 #[cfg(target_os = "linux")]
-use jemallocator::Jemalloc;
+use std::alloc::System;
 
 #[cfg(target_os = "linux")]
 #[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
- 
+static GLOBAL: System = System;
 
 // JSONPath query result containing found data and path
 #[pyclass(frozen)]
