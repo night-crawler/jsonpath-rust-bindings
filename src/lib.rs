@@ -5,8 +5,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pythonize::{depythonize, pythonize};
 use serde_json::Value;
-use std::collections::HashMap;
-use std::sync::{LazyLock, Mutex};
+ 
 
 #[cfg(not(target_os = "linux"))]
 use mimalloc::MiMalloc;
@@ -21,10 +20,7 @@ use jemallocator::Jemalloc;
 #[cfg(target_os = "linux")]
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
-
-// Query cache for caching parsed JSONPath queries
-static QUERY_CACHE: LazyLock<Mutex<HashMap<String, JpQuery>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
+ 
 
 // JSONPath query result containing found data and path
 #[pyclass(frozen)]
@@ -63,7 +59,7 @@ impl Finder {
 
     // Execute JSONPath query, return list of results containing data and paths
     fn find(self_: PyRef<'_, Self>, query: String) -> PyResult<Vec<JsonPathResult>> {
-        find_internal(&self_.value, &query, |_| true)
+        find_internal_path_value(&self_.value, &query, |_| true)
     }
 
     // Execute JSONPath query, return only found data values
@@ -91,7 +87,7 @@ fn execute_query<'a>(
 }
 
 // Execute query and return JsonPathResult list
-fn find_internal(
+fn find_internal_path_value(
     value: &Value,
     query: &str,
     predicate: impl Fn(&QueryRef<Value>) -> bool,
@@ -154,24 +150,9 @@ fn map_json_value(py: Python, jpv: QueryRef<Value>) -> PyResult<Py<PyAny>> {
     Ok(pythonize(py, val)?.into_pyobject(py)?.unbind())
 }
 
-// Parse JSONPath query string with cache optimization for repeated queries
+// Parse JSONPath query string directly without caching
 fn parse_query(query: &str) -> PyResult<JpQuery> {
-    // First try to get from cache
-    if let Ok(cache) = QUERY_CACHE.lock() {
-        if let Some(cached_query) = cache.get(query) {
-            return Ok(cached_query.clone());
-        }
-    }
-
-    // Cache miss, parse query
-    let parsed = parse_json_path(query).map_err(|err| PyValueError::new_err(format!("{err:?}")))?;
-
-    // Store parsed result in cache
-    if let Ok(mut cache) = QUERY_CACHE.lock() {
-        cache.insert(query.to_string(), parsed.clone());
-    }
-
-    Ok(parsed)
+    parse_json_path(query).map_err(|err| PyValueError::new_err(format!("{err:?}")))
 }
 
 // Convert Python object to serde_json::Value
