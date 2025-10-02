@@ -1,7 +1,6 @@
 use jsonpath_rust::parser::model::JpQuery;
 use jsonpath_rust::parser::parse_json_path;
 use jsonpath_rust::query::{js_path_process, QueryRef};
-use mimalloc::MiMalloc;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pythonize::{depythonize, pythonize};
@@ -9,8 +8,19 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::{LazyLock, Mutex};
 
+#[cfg(not(target_os = "linux"))]
+use mimalloc::MiMalloc;
+
+#[cfg(not(target_os = "linux"))]
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
+
+#[cfg(target_os = "linux")]
+use jemallocator::Jemalloc;
+
+#[cfg(target_os = "linux")]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
 
 // Query cache for caching parsed JSONPath queries
 static QUERY_CACHE: LazyLock<Mutex<HashMap<String, JpQuery>>> =
