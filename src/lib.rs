@@ -6,17 +6,19 @@ use pyo3::prelude::*;
 use pythonize::{depythonize, pythonize};
 use serde_json::Value;
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(any(
+    not(target_os = "linux"),
+    all(target_os = "linux", target_env = "musl")
+))]
 use mimalloc::MiMalloc;
-
-#[cfg(not(target_os = "linux"))]
+#[cfg(any(
+    not(target_os = "linux"),
+    all(target_os = "linux", target_env = "musl")
+))]
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
-#[cfg(target_os = "linux")]
-use std::alloc::System;
 
-#[cfg(target_os = "linux")]
 #[global_allocator]
 static GLOBAL: System = System;
 
