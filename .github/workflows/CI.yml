@@ -26,16 +26,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, windows-latest, macos-14]
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14.0rc3"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         include:
           - os: ubuntu-22.04
-            python-version: "3.14.0rc3"
+            python-version: "3.14"
             allow-failure: true
           - os: windows-latest
-            python-version: "3.14.0rc3"
+            python-version: "3.14"
             allow-failure: true
           - os: macos-14
-            python-version: "3.14.0rc3"
+            python-version: "3.14"
             allow-failure: true
     continue-on-error: ${{ matrix.allow-failure || false }}
     steps:
