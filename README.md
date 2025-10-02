@@ -77,10 +77,17 @@ queries = [
 f = Finder(sample)
 
 for query in queries:
-    print(query, f.find(query), '\n')
+    # print(query, f.find(query), '\n')
+    print(query)
+    print(f.find(query))
+    print(f.find_data(query))
+    print(f.find_absolute_path(query))
 
 # You will see a bunch of found items like
-# $..book[?(@.author ~= '.*Rees')].price [JsonPathResult(data=8.95, path=Some("$.['store'].['book'][0].['price']"), is_new_value=False)]
+# $.store.book[*].author
+# [JsonPathResult(data='Nigel Rees', path="$['store']['book'][0]['author']"), JsonPathResult(data='Evelyn Waugh', path="$['store']['book'][1]['author']"), JsonPathResult(data='Herman Melville', path="$['store']['book'][2]['author']"), JsonPathResult(data='J. R. R. Tolkien', path="$['store']['book'][3]['author']")]
+# ['Nigel Rees', 'Evelyn Waugh', 'Herman Melville', 'J. R. R. Tolkien']
+# ["$['store']['book'][0]['author']", "$['store']['book'][1]['author']", "$['store']['book'][2]['author']", "$['store']['book'][3]['author']"]
 
 ```
 
@@ -117,7 +124,7 @@ Clone the repository.
 Update maturin if needed:
 
 ```bash
-pip install maturin -U 
+pip install maturin -U
 ```
 
 Add your changes, then run:
