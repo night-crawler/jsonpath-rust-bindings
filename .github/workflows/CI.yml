@@ -72,7 +72,6 @@ jobs:
           architecture: ${{ matrix.platform.target }}
           allow-prereleases: true
 
-
   setup-python-macos:
     name: Setup Python Environments (macOS)
     runs-on: ${{ matrix.platform.runner }}
@@ -157,37 +156,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install Python3.8 version
+      - name: Install Python3.8、3.14 and multiple PyPy version
         uses: actions/setup-python@v6
         with:
-          python-version: 3.8
+          python-version: |
+            3.8
+            3.14
+            pypy3.9
+            pypy3.10
+            pypy3.11
           architecture: ${{ matrix.platform.target }}
           allow-prereleases: true
-
-      - name: Install Python3.14 version
-        uses: actions/setup-python@v6
-        with:
-          python-version: 3.14
-          architecture: ${{ matrix.platform.target }}
-          allow-prereleases: true
-
-      - name: Install pypy3.9 version
-        uses: actions/setup-python@v6
-        with:
-          python-version: pypy3.9
-          architecture: ${{ matrix.platform.target }}
-
-      - name: Install pypy3.10 version
-        uses: actions/setup-python@v6
-        with:
-          python-version: pypy3.10
-          architecture: ${{ matrix.platform.target }}
-
-      - name: Install pypy3.11 version
-        uses: actions/setup-python@v6
-        with:
-          python-version: pypy3.11
-          architecture: ${{ matrix.platform.target }}
 
       - name: Set PyPy paths
         shell: pwsh
@@ -220,6 +199,7 @@ jobs:
             --out target/wheels
             -i python3.8 python3.9 python3.10 python3.11 python3.12 python3.13 python3.14
             -i ${{ env.PYPY_PATHS }}
+
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
       - name: Upload wheels
