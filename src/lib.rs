@@ -61,43 +61,35 @@ impl Finder {
 
     // Execute JSONPath query, return list of results containing data and paths
     fn find(self_: PyRef<'_, Self>, query: String) -> PyResult<Vec<JsonPathResult>> {
-        find_internal_path_value(&self_.value, &query, |_| true)
+        find_path_value_internal(&self_.value, &query)
     }
 
     // Execute JSONPath query, return only found data values
     fn find_data(self_: PyRef<'_, Self>, query: String) -> PyResult<Vec<Py<PyAny>>> {
-        find_internal_data(&self_.value, &query, |_| true)
+        find_data_internal(&self_.value, &query)
     }
 
     // Execute JSONPath query, return only found absolute paths
     fn find_absolute_path(self_: PyRef<'_, Self>, query: String) -> PyResult<Vec<String>> {
-        find_internal_path(&self_.value, &query, |_| true)
+        find_paths_internal(&self_.value, &query)
     }
 }
 
 // Execute JSONPath query and return processed results
-fn execute_query<'a>(
-    value: &'a Value,
-    query: &str,
-    predicate: impl Fn(&QueryRef<Value>) -> bool,
-) -> PyResult<Vec<QueryRef<'a, Value>>> {
+fn execute_query<'a>(value: &'a Value, query: &str) -> PyResult<Vec<QueryRef<'a, Value>>> {
     let parsed_query = parse_query(query)?;
     let processed = js_path_process(&parsed_query, value)
         .map_err(|err| PyValueError::new_err(err.to_string()))?;
 
-    Ok(processed.into_iter().filter(predicate).collect())
+    Ok(processed.into_iter().collect())
 }
 
 // Execute query and return JsonPathResult list
-fn find_internal_path_value(
-    value: &Value,
-    query: &str,
-    predicate: impl Fn(&QueryRef<Value>) -> bool,
-) -> PyResult<Vec<JsonPathResult>> {
-    let filtered = execute_query(value, query, predicate)?;
+fn find_path_value_internal(value: &Value, query: &str) -> PyResult<Vec<JsonPathResult>> {
+    let result = execute_query(value, query)?;
 
     Python::attach(|py| {
-        filtered
+        result
             .into_iter()
             .map(|v| map_json_path_value(py, v))
             .collect()
@@ -105,29 +97,17 @@ fn find_internal_path_value(
 }
 
 // Execute query and return data value list
-fn find_internal_data(
-    value: &Value,
-    query: &str,
-    predicate: impl Fn(&QueryRef<Value>) -> bool,
-) -> PyResult<Vec<Py<PyAny>>> {
-    let filtered = execute_query(value, query, predicate)?;
-
-    Python::attach(|py| {
-        filtered
-            .into_iter()
-            .map(|v| map_json_value(py, v))
-            .collect()
-    })
+fn find_data_internal(value: &Value, query: &str) -> PyResult<Vec<Py<PyAny>>> {
+    let result = execute_query(value, query)?;
+    Python::attach(|py| result.into_iter().map(|v| map_json_value(py, v)).collect())
 }
 
 // Execute query and return path string list
-fn find_internal_path(
-    value: &Value,
-    query: &str,
-    predicate: impl Fn(&QueryRef<Value>) -> bool,
-) -> PyResult<Vec<String>> {
-    let filtered = execute_query(value, query, predicate)?;
-    filtered.into_iter().map(|v| map_json_path(v)).collect()
+fn find_paths_internal(value: &Value, query: &str) -> PyResult<Vec<String>> {
+    Ok(execute_query(value, query)?
+        .into_iter()
+        .map(|v| v.path())
+        .collect::<Vec<_>>())
 }
 
 // Map QueryRef<Value> to JsonPathResult
@@ -139,11 +119,6 @@ fn map_json_path_value(py: Python, jpv: QueryRef<Value>) -> PyResult<JsonPathRes
         data: Some(pythonize(py, val)?.into_pyobject(py)?.unbind()),
         path: Some(path),
     })
-}
-
-// Extract path string from QueryRef<Value>
-fn map_json_path(jpv: QueryRef<Value>) -> PyResult<String> {
-    Ok(jpv.path())
 }
 
 // Convert value in QueryRef<Value> to Python object
