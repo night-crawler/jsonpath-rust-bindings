@@ -70,7 +70,7 @@ queries = [
     '$..book[2:]',
     '$.store.book[?(@.price<10)]',
     '$..book[?(@.price<=$.expensive)]',
-    "$..book[?(@.author ~= '.*Rees')].price",
+    '$..book[?match(@.author, "(?i).*rees.*")].price',
     '$..*',
 ]
 
