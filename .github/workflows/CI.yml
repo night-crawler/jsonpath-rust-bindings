@@ -28,22 +28,9 @@ jobs:
   # These jobs will set up the Python environments for the other jobs to use.
   setup-python-linux:
     name: Setup Python Environments (Linux)
-    runs-on: ${{ matrix.platform.runner }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        platform:
-          - runner: ubuntu-latest
-            target: x86_64
-          - runner: ubuntu-latest
-            target: x86
-          - runner: ubuntu-latest
-            target: aarch64
-          - runner: ubuntu-latest
-            target: armv7
-          - runner: ubuntu-latest
-            target: s390x
-          - runner: ubuntu-latest
-            target: ppc64le
         python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "pypy3.9", "pypy3.10", "pypy3.11" ]
     steps:
       - uses: actions/checkout@v5
@@ -53,35 +40,56 @@ jobs:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
 
-  setup-python-windows:
-    name: Setup Python Environments (Windows)
-    runs-on: ${{ matrix.platform.runner }}
+  setup-python-windows-x64:
+    name: Setup Python Environments (Windows-x64)
+    runs-on: windows-latest
     strategy:
       matrix:
-        platform:
-          - runner: windows-latest
-            target: x64 # 64-bit Python interpreter, note that 32-bit Python interpreter is not supported on Windows x86
-        # Other Python versions need to be installed separately to build correctly
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v5
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
-          architecture: ${{ matrix.platform.target }}
+          architecture: x64
+          allow-prereleases: true
+
+  setup-python-windows-x86:
+    name: Setup Python Environments (Windows-x86)
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x86
+          allow-prereleases: true
+
+  setup-python-windows-arm64:
+    name: Setup Python Environments (Windows-arm64)
+    runs-on: windows-11-arm
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: arm64
           allow-prereleases: true
 
   setup-python-macos:
     name: Setup Python Environments (macOS)
-    runs-on: ${{ matrix.platform.runner }}
+    runs-on: macos-latest
     strategy:
       matrix:
-        platform:
-          - runner: macos-latest
-            target: x86_64
-          - runner: macos-latest
-            target: aarch64
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "pypy3.9", "pypy3.10", "pypy3.11" ]
     steps:
       - uses: actions/checkout@v5
@@ -145,14 +153,9 @@ jobs:
           name: wheels-musllinux-${{ matrix.target }}
           path: target/wheels
 
-  windows:
-    runs-on: ${{ matrix.platform.runner }}
-    needs: setup-python-windows
-    strategy:
-      matrix:
-        platform:
-          - runner: windows-latest
-            target: x64
+  windows-x64:
+    runs-on: windows-latest
+    needs: setup-python-windows-x64
     steps:
       - uses: actions/checkout@v5
 
@@ -161,11 +164,10 @@ jobs:
         with:
           python-version: |
             3.8
-            3.14
             pypy3.9
             pypy3.10
             pypy3.11
-          architecture: ${{ matrix.platform.target }}
+          architecture: x64
           allow-prereleases: true
 
       - name: Set PyPy paths
@@ -193,7 +195,7 @@ jobs:
       - name: Build wheels for all Python versions
         uses: PyO3/maturin-action@v1
         with:
-          target: ${{ matrix.platform.target }}
+          target: x64
           args: |
             --release
             --out target/wheels
@@ -205,20 +207,66 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-windows-${{ matrix.platform.target }}
+          name: wheels-windows-x64
+          path: target/wheels
+
+  windows-x86:
+    needs: setup-python-windows-x86
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Python3.8
+        uses: actions/setup-python@v6
+        with:
+          python-version: 3.8
+          architecture: x86
+          allow-prereleases: true
+      - name: Build wheels for all Python versions
+        uses: PyO3/maturin-action@v1
+        with:
+          target: x86
+          args: |
+            --release
+            --out target/wheels
+            -i python3.8 python3.9 python3.10 python3.11 python3.12 python3.13 python3.14
+          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-windows-x86
+          path: target/wheels
+
+  windows-arm64:
+    runs-on: windows-11-arm
+    needs: setup-python-windows-arm64
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build wheels for all Python versions
+        uses: PyO3/maturin-action@v1
+        with:
+          target: aarch64-pc-windows-msvc
+          args: |
+            --release
+            --out target/wheels
+            -i python3.11 python3.12 python3.13 python3.14
+          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-windows-arm64
           path: target/wheels
 
 
+
   macos:
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-latest
     needs: setup-python-macos
     strategy:
       matrix:
-        include:
-          - runner: macos-latest
-            target: x86_64
-          - runner: macos-latest
-            target: aarch64
+        target: [x86_64, aarch64]
     steps:
       - uses: actions/checkout@v5
 
@@ -257,7 +305,7 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'}}
-    needs: [linux, musllinux, windows, macos, sdist]
+    needs: [linux, musllinux, windows-x64, windows-x86, windows-arm64, macos, sdist]
     permissions:
       # Use to sign the release artifacts
       id-token: write
