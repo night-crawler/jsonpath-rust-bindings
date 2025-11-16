@@ -13,6 +13,12 @@ use serde_json::Value;
     all(target_os = "linux", target_arch = "x86", not(target_env = "musl"))
 ))]
 use mimalloc::MiMalloc;
+#[cfg(any(
+    not(target_os = "linux"),
+    all(target_os = "linux", target_env = "musl"),
+    all(target_os = "linux", target_arch = "x86_64", not(target_env = "musl")),
+    all(target_os = "linux", target_arch = "x86", not(target_env = "musl"))
+))]
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
