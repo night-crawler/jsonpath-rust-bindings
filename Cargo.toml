@@ -20,10 +20,13 @@ opt-level = 1
 debug = true
 
 [dependencies]
-pyo3 = { version = "0.26.0", features = ["extension-module"] }
+pyo3 = { version = "0.26.0", features = [
+    "extension-module",
+    "generate-import-lib",
+] }
 jsonpath-rust = "1.0.4"
 serde_json = "1.0"
 pythonize = "0.26.0"
 
-[target.'cfg(any(not(target_os = "linux"),all(target_os = "linux", target_env = "musl")))'.dependencies]
+[target.'cfg(any(not(target_os = "linux"),all(target_os = "linux", target_env = "musl"),all(target_os = "linux", target_arch = "x86_64", not(target_env = "musl")),all(target_os = "linux", target_arch = "x86", not(target_env = "musl"))))'.dependencies]
 mimalloc = "0.1.48"

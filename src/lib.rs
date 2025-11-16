@@ -8,22 +8,21 @@ use serde_json::Value;
 
 #[cfg(any(
     not(target_os = "linux"),
-    all(target_os = "linux", target_env = "musl")
+    all(target_os = "linux", target_env = "musl"),
+    all(target_os = "linux", target_arch = "x86_64", not(target_env = "musl")),
+    all(target_os = "linux", target_arch = "x86", not(target_env = "musl"))
 ))]
 use mimalloc::MiMalloc;
 #[cfg(any(
     not(target_os = "linux"),
-    all(target_os = "linux", target_env = "musl")
+    all(target_os = "linux", target_env = "musl"),
+    all(target_os = "linux", target_arch = "x86_64", not(target_env = "musl")),
+    all(target_os = "linux", target_arch = "x86", not(target_env = "musl"))
 ))]
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
-#[cfg(all(target_os = "linux", not(target_env = "musl")))]
-use std::alloc::System;
-#[cfg(all(target_os = "linux", not(target_env = "musl")))]
-#[global_allocator]
-static GLOBAL: System = System;
-
+const PYTHON_PACKAGE_VERSION: &str = env!("CARGO_PKG_VERSION");
 // JSONPath query result containing found data and path
 #[pyclass(frozen)]
 struct JsonPathResult {
@@ -158,5 +157,6 @@ fn repr_json_path_result(slf: PyRef<'_, JsonPathResult>) -> PyResult<String> {
 fn jsonpath_rust_bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Finder>()?;
     m.add_class::<JsonPathResult>()?;
+    m.add("__version__", PYTHON_PACKAGE_VERSION)?;
     Ok(())
 }
