@@ -6,23 +6,32 @@ use pyo3::prelude::*;
 use pythonize::{depythonize, pythonize};
 use serde_json::Value;
 
-#[cfg(any(
-    not(target_os = "linux"),
-    all(target_os = "linux", target_env = "musl"),
-    all(target_os = "linux", target_arch = "x86_64", not(target_env = "musl")),
-    all(target_os = "linux", target_arch = "x86", not(target_env = "musl"))
-))]
-use mimalloc::MiMalloc;
-#[cfg(any(
-    not(target_os = "linux"),
-    all(target_os = "linux", target_env = "musl"),
-    all(target_os = "linux", target_arch = "x86_64", not(target_env = "musl")),
-    all(target_os = "linux", target_arch = "x86", not(target_env = "musl"))
-))]
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+macro_rules! cfg_mimalloc {
+    ($($tt:tt)*) => {
+        #[cfg(any(
+            not(target_os = "linux"),
+            all(target_os = "linux", target_env = "musl"),
+            all(
+                target_os = "linux",
+                any(target_arch = "x86_64", target_arch = "x86"),
+                not(target_env = "musl")
+            )
+        ))]
+        $($tt)*
+    };
+}
+
+cfg_mimalloc! {
+    use mimalloc::MiMalloc;
+}
+
+cfg_mimalloc! {
+    #[global_allocator]
+    static GLOBAL: MiMalloc = MiMalloc;
+}
 
 const PYTHON_PACKAGE_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 // JSONPath query result containing found data and path
 #[pyclass(frozen)]
 struct JsonPathResult {
@@ -77,10 +86,7 @@ impl Finder {
 // Execute JSONPath query and return processed results
 fn execute_query<'a>(value: &'a Value, query: &str) -> PyResult<Vec<QueryRef<'a, Value>>> {
     let parsed_query = parse_query(query)?;
-    let processed = js_path_process(&parsed_query, value)
-        .map_err(|err| PyValueError::new_err(err.to_string()))?;
-
-    Ok(processed.into_iter().collect())
+    js_path_process(&parsed_query, value).map_err(|err| PyValueError::new_err(err.to_string()))
 }
 
 // Execute query and return JsonPathResult list
