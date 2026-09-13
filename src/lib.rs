@@ -6,29 +6,16 @@ use pyo3::prelude::*;
 use pythonize::{depythonize, pythonize};
 use serde_json::Value;
 
-macro_rules! cfg_mimalloc {
-    ($($tt:tt)*) => {
-        #[cfg(any(
-            not(target_os = "linux"),
-            all(target_os = "linux", target_env = "musl"),
-            all(
-                target_os = "linux",
-                any(target_arch = "x86_64", target_arch = "x86"),
-                not(target_env = "musl")
-            )
-        ))]
-        $($tt)*
-    };
-}
-
-cfg_mimalloc! {
-    use mimalloc::MiMalloc;
-}
-
-cfg_mimalloc! {
-    #[global_allocator]
-    static GLOBAL: MiMalloc = MiMalloc;
-}
+// Keep in sync with the mimalloc target predicate in Cargo.toml.
+#[cfg(any(
+    not(target_os = "linux"),
+    all(
+        target_os = "linux",
+        any(target_env = "musl", target_arch = "x86_64", target_arch = "x86")
+    )
+))]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 const PYTHON_PACKAGE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
