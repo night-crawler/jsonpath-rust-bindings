@@ -18,13 +18,17 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Software Development :: Libraries",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dynamic = ["version"]
-maintainer = "Igor Kalishevsky"
-maintainer-email = "lilo.panic@@gmail.com"
-project-url = { homepage = "https://github.com/night-crawler/jsonpath-rust-bindings" }
+authors = [
+    { name = "Igor Kalishevsky", email = "lilo.panic@gmail.com" },
+]
+
+[project.urls]
+Homepage = "https://github.com/night-crawler/jsonpath-rust-bindings"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]

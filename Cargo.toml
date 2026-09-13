@@ -1,6 +1,6 @@
 [package]
 name = "jsonpath_rust_bindings"
-version = "1.1.1"
+version = "1.1.2"
 edition = "2021"
 
 [lib]
@@ -20,13 +20,13 @@ opt-level = 1
 debug = true
 
 [dependencies]
-pyo3 = { version = "0.26.0", features = [
+pyo3 = { version = "0.29.2", features = [
     "extension-module",
     "generate-import-lib",
 ] }
-jsonpath-rust = "1.0.4"
+jsonpath-rust = "1.0.11"
 serde_json = "1.0"
-pythonize = "0.26.0"
+pythonize = "0.29.0"
 
-[target.'cfg(any(not(target_os = "linux"),all(target_os = "linux", target_env = "musl"),all(target_os = "linux", target_arch = "x86_64", not(target_env = "musl")),all(target_os = "linux", target_arch = "x86", not(target_env = "musl"))))'.dependencies]
-mimalloc = "0.1.48"
+[target.'cfg(any(not(target_os = "linux"), all(target_os = "linux", any(target_env = "musl", target_arch = "x86_64", target_arch = "x86"))))'.dependencies]
+mimalloc = "0.1.52"
