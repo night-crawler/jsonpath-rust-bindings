@@ -2,6 +2,9 @@ name: Cross-platform sanity check
 
 on:
   push:
+    branches:
+      - main
+      - master
     paths-ignore:
       - '**.md'
   pull_request:
