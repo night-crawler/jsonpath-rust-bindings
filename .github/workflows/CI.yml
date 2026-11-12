@@ -45,7 +45,7 @@ jobs:
           args: |
             --release
             --out target/wheels
-            -i python3.8 python3.9 python3.10 python3.11 python3.12 python3.13 python3.14 python3.15 pypy3.11
+            -i python3.9 python3.10 python3.11 python3.12 python3.13 python3.14 python3.15 pypy3.11 pypy3.12
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
           manylinux: auto
 
@@ -70,7 +70,7 @@ jobs:
           args: |
             --release
             --out target/wheels
-            -i python3.8 python3.9 python3.10 python3.11 python3.12 python3.13 python3.14 python3.15 pypy3.11
+            -i python3.9 python3.10 python3.11 python3.12 python3.13 python3.14 python3.15 pypy3.11 pypy3.12
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
           manylinux: musllinux_1_2
 
@@ -86,36 +86,26 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install Python3.8 and multiple PyPy version
-        uses: actions/setup-python@v7
-        with:
-          python-version: |
-            3.8
-            pypy3.11
-          architecture: x64
-          allow-prereleases: true
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
 
-      - name: Set PyPy paths
+      - name: Install Python and PyPy versions
         shell: pwsh
         run: |
-          $PYPY_PATHS = @()
-          $versions = @("3.11")
+          uv python install 3.9 3.10 3.11 3.12 3.13 3.14 3.15 pypy3.11 pypy3.12
 
-          foreach ($version in $versions) {
-              $command = "pypy$version"
-              $pypyCommand = Get-Command $command -ErrorAction SilentlyContinue
-              if ($pypyCommand) {
-                  $path = "$($pypyCommand.Source)"
-                  $PYPY_PATHS += $path
-                  Write-Host "Found PyPy$version : $path"
-              } else {
-                  Write-Host "PyPy$version not found"
-              }
+          $PYTHON_PATHS = @()
+          $requests = @("3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15", "pypy3.11", "pypy3.12")
+
+          foreach ($request in $requests) {
+              $path = (uv python find $request).Trim()
+              $PYTHON_PATHS += $path
+              Write-Host "Found Python $request : $path"
           }
 
-          $PYPY_PATHS_STRING = $PYPY_PATHS -join " "
-          Write-Host "All PyPy paths: $PYPY_PATHS_STRING"
-          echo "PYPY_PATHS=$PYPY_PATHS_STRING" >> $env:GITHUB_ENV
+          $PYTHON_PATHS_STRING = $PYTHON_PATHS -join " "
+          Write-Host "All Python paths: $PYTHON_PATHS_STRING"
+          echo "PYTHON_PATHS=$PYTHON_PATHS_STRING" >> $env:GITHUB_ENV
 
       - name: Build wheels for all Python versions
         uses: PyO3/maturin-action@v1
@@ -124,8 +114,7 @@ jobs:
           args: |
             --release
             --out target/wheels
-            -i python3.8 python3.9 python3.10 python3.11 python3.12 python3.13 python3.14 python3.15
-            -i ${{ env.PYPY_PATHS }}
+            -i ${{ env.PYTHON_PATHS }}
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
       - name: Upload wheels
@@ -140,13 +129,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install Python3.8
-        uses: actions/setup-python@v7
-        with:
-          python-version: 3.8
-          architecture: x86
-          allow-prereleases: true
-
       - name: Build wheels for all Python versions
         uses: PyO3/maturin-action@v1
         with:
@@ -154,7 +136,7 @@ jobs:
           args: |
             --release
             --out target/wheels
-            -i python3.8 python3.9 python3.10 python3.11 python3.12 python3.13 python3.14 python3.15
+            -i python3.9 python3.10 python3.11 python3.12 python3.13 python3.14 python3.15
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
       - name: Upload wheels
@@ -199,7 +181,7 @@ jobs:
           args: |
             --release
             --out target/wheels
-            -i python3.8 python3.9 python3.10 python3.11 python3.12 python3.13 python3.14 python3.15 pypy3.11
+            -i python3.9 python3.10 python3.11 python3.12 python3.13 python3.14 python3.15 pypy3.11 pypy3.12
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
       - name: Upload wheels

@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15", "pypy3.11"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15", "pypy3.11", "pypy3.12"]
         include:
           - os: ubuntu-latest
             python-version: "3.15"
@@ -32,26 +32,35 @@ jobs:
     continue-on-error: ${{ matrix.allow-failure || false }}
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Python
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: pyproject.toml
+
+      - name: Install CPython
+        if: ${{ !startsWith(matrix.python-version, 'pypy') }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Set up PyPy
+        if: ${{ startsWith(matrix.python-version, 'pypy') }}
         uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
-          cache: pip
-          cache-dependency-path: pyproject.toml
 
       - name: Rust build cache
         uses: Swatinem/rust-cache@v2.9.2
       - name: Create virtualenv and install package
         shell: bash
         run: |
-          python -m venv env
+          uv venv env --python ${{ matrix.python-version }} --seed
           if [ "$RUNNER_OS" == "Windows" ]; then
             source env/Scripts/activate
           else
             source env/bin/activate
           fi
-          pip install -U setuptools wheel maturin pytest virtualenv
+          uv pip install -U setuptools wheel maturin pytest virtualenv
           maturin develop --release
       - name: Test
         shell: bash
