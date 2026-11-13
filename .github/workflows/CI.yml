@@ -31,10 +31,22 @@ jobs:
   # Build Jobs
   # These jobs will build the wheels for all Python versions and upload them as artifacts.
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        target: [x86_64, aarch64, s390x, ppc64le]
+        include:
+          - target: x86_64
+            os: ubuntu-latest
+          - target: aarch64
+            os: ubuntu-latest
+          - target: s390x
+            os: ubuntu-latest
+          - target: ppc64le
+            os: ubuntu-latest
+          - target: x86
+            os: ubuntu-24.04
+          - target: armv7
+            os: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 
