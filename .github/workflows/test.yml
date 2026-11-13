@@ -31,7 +31,7 @@ jobs:
             allow-failure: true
     continue-on-error: ${{ matrix.allow-failure || false }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - name: Install uv
         uses: astral-sh/setup-uv@v10.3.3
         with:
@@ -44,13 +44,13 @@ jobs:
 
       - name: Set up PyPy
         if: ${{ startsWith(matrix.python-version, 'pypy') }}
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v7.1.0
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
 
       - name: Rust build cache
-        uses: Swatinem/rust-cache@v2.9.2
+        uses: Swatinem/rust-cache@v2.9.3
       - name: Create virtualenv and install package
         shell: bash
         run: |
